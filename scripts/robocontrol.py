@@ -20,8 +20,12 @@ def move(ranges):
     z = 0
     x = 0
 
-    turn_left = 0.5
-    turn_right = -0.5
+    speed = 4
+
+    turn_left = 0.1 * speed
+    turn_right = -0.1 * speed
+
+    forward = 0.1 * speed
 
     left_30 = ranges[29]
     left_60 = ranges[59]
@@ -37,20 +41,27 @@ def move(ranges):
      + str(front) + " | "
      + str(right_30) + " " + str(right_60) + " " + str(right_90) + " R")
 
-    if front > 3.0 and left_30 > 3.0 and right_30  > 3.0:
+    if left_30 < 0.4 and front < 0.5 and right_30 < 0.4:
+        print("Smaller")
+        if left_90 > right_90:
+            z = turn_left * 2
+            x = -0.5
+        else:
+            z = turn_right * 2
+            x = -0.5      
+    elif front > 3.0 and left_30 > 3.0 and right_30  > 3.0:
         z = 0
-        x = 0.1
+        x = forward
     elif front > left_30 and front > right_30:
         z = 0
-        x = 0.1
+        x = forward
     elif left_30 > front and left_30 > right_30:
         z = turn_left
-        x = 0.1
+        x = forward
     elif right_30 > front and right_30 > left_30:
         z = turn_right
-        x = 0.1
-
-        
+        x = forward
+      
 
     twist = Twist()
 

@@ -11,17 +11,6 @@ def talker():
 
     twist = Twist()
 
-    left_30 = ranges[29]
-    left_60 = ranges[59]
-    left_90 = ranges[89]
-
-    forward = ranges[0]
-
-    right_30 = ranges[329]
-    right_60 = ranges[299]
-    right_90 = ranges[269]
-    
-
 
     rate = rospy.Rate(10) # 10hz
     while not rospy.is_shutdown():
