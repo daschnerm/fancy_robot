@@ -4,90 +4,95 @@ import rospy
 from std_msgs.msg import String
 from geometry_msgs.msg import Twist
 from sensor_msgs.msg import LaserScan
+from nav_msgs.msg import Odometry
+
+class RoboControl:
+
+    def __init__(self):
+        rospy.init_node('listener', anonymous=True)
+        self.scan_sub = rospy.Subscriber('ifl_turtlebot1/scan', LaserScan, self.scan_callback)
+        self.odom_sub = rospy.Subscriber('ifl_turtlebot1/odom', Odometry, self.odom_callback)
+
+        self.controll_pub = rospy.Publisher('/ifl_turtlebot1/cmd_vel', Twist, queue_size=10)
+        
+        self.front = 0
+        self.left_30 = self.left_60 = self.left_90 = 0
+        self.right_30 = self.right_60 = self.right_90 = 0
+
+        self.desired_speed = 0.4
+        self.actual_speed = 0
+        self.turn_speed = 0.1
+
+    def odom_callback(self, data):
+        self.actual_speed = data.twist.twist.linear.x
+
+    def scan_callback(self, data):
+        ranges = data.ranges
+        
+        self.move(ranges)
+
+        #rospy.loginfo(rospy.get_caller_id() + 'I heard %s', data)
 
 
-
-def callback(data):
-    ranges = data.ranges
-    
-    move(ranges)
-
-    # 267 -> left, 0 -> middle, 89 -> right
-    #rospy.loginfo(rospy.get_caller_id() + 'I heard %s', data)
-
-
-def move(ranges):
-    z = 0
-    x = 0
-
-    speed = 4
-
-    turn_left = 0.1 * speed
-    turn_right = -0.1 * speed
-
-    forward = 0.1 * speed
-
-    left_30 = ranges[29]
-    left_60 = ranges[59]
-    left_90 = ranges[89]
-
-    front = ranges[0]
-
-    right_30 = ranges[329]
-    right_60 = ranges[299]
-    right_90 = ranges[269]
-
-    print("L " + str(left_90) + " " + str(left_60) + " " + str(left_30) + " | "
-     + str(front) + " | "
-     + str(right_30) + " " + str(right_60) + " " + str(right_90) + " R")
-
-    if left_30 < 0.4 and front < 0.5 and right_30 < 0.4:
-        print("Smaller")
-        if left_90 > right_90:
-            z = turn_left * 2
-            x = -0.5
-        else:
-            z = turn_right * 2
-            x = -0.5      
-    elif front > 3.0 and left_30 > 3.0 and right_30  > 3.0:
+    def move(self, ranges):
         z = 0
-        x = forward
-    elif front > left_30 and front > right_30:
-        z = 0
-        x = forward
-    elif left_30 > front and left_30 > right_30:
-        z = turn_left
-        x = forward
-    elif right_30 > front and right_30 > left_30:
-        z = turn_right
-        x = forward
-      
+        x = 0
 
-    twist = Twist()
+        self.relative_speed = self.actual_speed / self.desired_speed
 
-    twist.linear.x = x
-    twist.angular.z = z
-    pub.publish(twist)
+        turn_left = 1 * self.desired_speed
+        turn_right = -1 * self.desired_speed
+
+        forward = 1 * self.desired_speed
+
+        self.left_30 = ranges[29]
+        self.left_60 = ranges[59]
+        self.left_90 = ranges[89]
+
+        self.front = ranges[0]
+
+        self.right_30 = ranges[329]
+        self.right_60 = ranges[299]
+        self.right_90 = ranges[269]
+
+        print("L " + str(self.left_90) + " " + str(self.left_60) + " " + str(self.left_30) + " | "
+        + str(self.front) + " | "
+        + str(self.right_30) + " " + str(self.right_60) + " " + str(self.right_90) + " R | " + str(self.actual_speed))
+
+        if self.left_30 < 0.4 and self.front < 0.5 and self.right_30 < 0.4:
+            if self.left_90 > self.right_90:
+                z = turn_left * 2
+                x = -0.5
+            else:
+                z = turn_right * 2
+                x = -0.5      
+        elif self.front > 3.0 and self.left_30 > 3.0 and self.right_30  > 3.0:
+            z = 0
+            x = forward
+        elif self.front > self.left_30 and self.front > self.right_30:
+            z = 0
+            x = forward
+        elif self.left_30 > self.front and self.left_30 > self.right_30:
+            z = turn_left
+            x = forward
+        elif self.right_30 > self.front and self.right_30 > self.left_30:
+            z = turn_right
+            x = forward
+        
+
+        twist = Twist()
+
+        twist.linear.x = x
+        twist.angular.z = z
+        self.controll_pub.publish(twist)
 
 
-def listener():
 
-    # In ROS, nodes are uniquely named. If two nodes with the same
-    # name are launched, the previous one is kicked off. The
-    # anonymous=True flag means that rospy will choose a unique
-    # name for our 'listener' node so that multiple listeners can
-    # run simultaneously.
-    rospy.init_node('listener', anonymous=True)
-
-    rospy.Subscriber('ifl_turtlebot1/scan', LaserScan, callback)
-    
-    # spin() simply keeps python from exiting until this node is stopped
-    rospy.spin()
-
-pub = rospy.Publisher('/ifl_turtlebot1/cmd_vel', Twist, queue_size=10)
 
 if __name__ == '__main__':
     try:
-        listener()
+        robo_control = RoboControl()
+        # spin() simply keeps python from exiting until this node is stopped
+        rospy.spin()
     except rospy.ROSInterruptException:
         pass
