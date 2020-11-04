@@ -57,27 +57,39 @@ class RoboControl:
 
         print("L " + str(self.left_90) + " " + str(self.left_60) + " " + str(self.left_30) + " | "
         + str(self.front) + " | "
-        + str(self.right_30) + " " + str(self.right_60) + " " + str(self.right_90) + " R | " + str(self.actual_speed))
-
-        if self.left_30 < 0.4 and self.front < 0.5 and self.right_30 < 0.4:
-            if self.left_90 > self.right_90:
+        + str(self.right_30) + " " + str(self.right_60) + " " + str(self.right_90) + " R | s " + str(self.actual_speed) + " r:" + str(self.relative_speed))
+        
+        # Init | if 
+        if self.front < 0.20 or (self.left_90 > 0.7 or self.right_90 > 0.7) and self.relative_speed < 0.5:
+            x = -0.2 * self.desired_speed
+            if self.front > 0.4:
                 z = turn_left * 2
-                x = -0.5
-            else:
-                z = turn_right * 2
-                x = -0.5      
+                x = 0
+            print("init")
+        elif self.left_90 < 0.15:
+            z = turn_right * 0.5
+            x = forward
+            print("left_90")
+        elif self.right_90 < 0.15:
+            z = turn_left * 0.5
+            x = forward
+            print("right_90")
         elif self.front > 3.0 and self.left_30 > 3.0 and self.right_30  > 3.0:
             z = 0
             x = forward
+            print("forward | inf")
         elif self.front > self.left_30 and self.front > self.right_30:
             z = 0
             x = forward
+            print("forward")
         elif self.left_30 > self.front and self.left_30 > self.right_30:
             z = turn_left
             x = forward
+            print("left")
         elif self.right_30 > self.front and self.right_30 > self.left_30:
             z = turn_right
             x = forward
+            print("right")
         
 
         twist = Twist()
