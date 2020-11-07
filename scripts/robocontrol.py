@@ -32,38 +32,6 @@ class RoboControl:
 
     def scan_callback(self, data):
         ranges = data.ranges
-        
-        self.move(ranges)
-
-        #rospy.loginfo(rospy.get_caller_id() + 'I heard %s', data)
-
-    def check_edges(self):
-        z = None
-        if self.left_30 < 0.15:
-            z = self.turn_right
-            print("To far left")
-        if self.right_30 < 0.15:
-            z = self.turn_left
-            print("To far right")
-        return z
-    
-    def check_inital_state(self):
-        return self.front < 0.20 or (self.left_90 > 0.7 or self.right_90 > 0.7) and self.relative_speed < 0.2
-
-    def move(self, ranges):
-	x = self.x
-	z = self.z
-
-        self.relative_speed = abs(self.actual_speed) / self.desired_speed
-
-        self.turn_left = 1.1 * self.relative_speed
-        self.turn_right = -1.1 * self.relative_speed
-
-        self.turn_left_init = 1 * self.desired_speed
-        self.turn_right_init = -1 * self.desired_speed
-
-
-        forward = self.desired_speed
 
         self.left_30 = ranges[29]
         self.left_60 = ranges[59]
@@ -74,28 +42,48 @@ class RoboControl:
         self.right_30 = ranges[329]
         self.right_60 = ranges[299]
         self.right_90 = ranges[269]
+        
+        self.move()
 
-        initial_state = self.check_inital_state()
+    def emergency_countersteer(self):
+        z = None
+        if self.left_30 < 0.15:
+            z = self.turn_right
+            print("Too far left")
+        if self.right_30 < 0.15:
+            z = self.turn_left
+            print("Too far right")
+        return z
+    
+    def check_initial_state(self):
+        return self.front < 0.20 or (self.left_90 > 0.7 or self.right_90 > 0.7) and self.relative_speed < 0.2
 
-        # Init | if 
+    def move(self):
+        x = self.x
+        z = self.z
+
+        self.relative_speed = abs(self.actual_speed) / self.desired_speed
+
+        self.turn_left = 1.1 * self.relative_speed
+        self.turn_right = -1.1 * self.relative_speed
+
+        forward = self.desired_speed
+
+        initial_state = self.check_initial_state()
+
+        # Init state
         if initial_state:
             x = -0.1 * self.desired_speed
             if self.front > 0.45:
                 z = 2
                 x = 0
             print("init")
+        # Collision avoidance | TurtleBot wider than lidar
         elif self.left_90 < 0.15 or self.left_60 < 0.15:
             z = self.turn_right * 0.5
-            if self.right_60 < 0.15:
-                print("left_60")
-            elif self.right_90 < 0.15:
-                print("left_90")
         elif self.right_90 < 0.15 or self.right_60 < 0.15:
             z = self.turn_left * 0.5
-            if self.right_60 < 0.15:
-                print("right_60")
-            elif self.right_90 < 0.15:
-                print("right_90")
+        # Main logic
         elif self.front > 3.0 and self.left_30 > 3.0 and self.right_30  > 3.0:
             z = 0
             print("forward | inf")
@@ -107,28 +95,26 @@ class RoboControl:
             print("left")
         elif self.right_30 > self.front and self.right_30 > self.left_30:
             z = self.turn_right
-            
             print("right")
         
-	if x >= 0 and x < forward:
+        # Accelerating in increments if below desired speed
+        if x >= 0 and x < forward:
            x = x + (forward / 30)
-           print("Accelerating " + str(x))
+           print("Accelerating by " + str(x))
 
-        z_emergency = self.check_edges()
+        # Emergency counter steer
+        z_emergency = self.emergency_countersteer()
         if not initial_state and z_emergency:
             z = z_emergency
-
-	print("x: " + str(x) + "L " + str(self.left_90) + " " + str(self.left_30) + " | "
-        + str(self.front) + " | "
-        + str(self.right_30) + " " + str(self.right_90) + " R | s " + str(self.actual_speed) + " r:" + str(self.relative_speed) + " z: " + str(z))
 
         twist = Twist()
 
         twist.linear.x = x
         twist.angular.z = z
         self.controll_pub.publish(twist)
-	self.x = x
- 	self.z = z
+ 
+        self.x = x
+        self.z = z
 
 
 
